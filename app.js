@@ -34,37 +34,59 @@ document.addEventListener('DOMContentLoaded', () => {
     let isCaller = false;
     let currentPeerId;
     let shareUrl;
+    let isInitialized = false;
 
     // Initialize the app
     init();
 
     async function init() {
+        if (isInitialized) return;
+        
         // Generate a random peer ID
         currentPeerId = generatePeerId();
         generatedIdInput.value = currentPeerId;
         shareUrl = generateShareUrl(currentPeerId);
         modalCallLink.value = shareUrl;
 
-        // Initialize PeerJS
+        // Initialize PeerJS with more robust configuration
         peer = new Peer(currentPeerId, {
-            host: '0.peerjs.com',
+            host: 'peerjs-server-6tt6.onrender.com',
             port: 443,
             secure: true,
+            pingInterval: 5000,
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { 
+                        urls: 'turn:global.turn.server:3478',
+                        username: 'username',
+                        credential: 'password'
+                    }
                 ]
             }
         });
 
         peer.on('open', (id) => {
             console.log('PeerJS connected with ID:', id);
+            isInitialized = true;
+            statusMessage.textContent = 'Ready to connect';
         });
 
         peer.on('error', (err) => {
             console.error('PeerJS error:', err);
-            statusMessage.textContent = 'Connection error. Please try again.';
+            let errorMsg = 'Connection error';
+            
+            if (err.type === 'peer-unavailable') {
+                errorMsg = 'Other peer unavailable. Check ID or ask them to join.';
+            } else if (err.type === 'network') {
+                errorMsg = 'Network issues. Check your internet connection.';
+            } else if (err.type === 'webrtc') {
+                errorMsg = 'WebRTC not supported. Try a different browser.';
+            }
+            
+            showErrorDialog(errorMsg);
         });
 
         // Set up event listeners
@@ -72,6 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Generate QR code
         generateQRCode();
+        isInitialized = true;
+        
+        // Check for call ID in URL
+        checkUrlForCallId();
     }
 
     function setupEventListeners() {
@@ -114,40 +140,76 @@ document.addEventListener('DOMContentLoaded', () => {
             peer.on('call', handleIncomingCall);
         } catch (err) {
             console.error('Error accessing media devices:', err);
-            alert('Could not access camera/microphone. Please check permissions.');
+            showErrorDialog('Could not access camera/microphone. Please check permissions.');
         }
     }
 
     async function joinExistingCall() {
         callId = joinCallIdInput.value.trim();
         if (!callId) {
-            alert('Please enter a call ID');
+            showErrorDialog('Please enter a call ID');
             return;
         }
 
+        if (!peer || peer.disconnected) {
+            await init();
+        }
+
         try {
-            // Get user media
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
-            localVideo.srcObject = localStream;
+            // Get user media with better error handling
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                localVideo.srcObject = localStream;
+            } catch (mediaError) {
+                console.error('Media error:', mediaError);
+                showErrorDialog('Could not access camera/microphone. Please check permissions.');
+                return;
+            }
 
             // Switch to call screen
             connectionScreen.classList.remove('active');
             callScreen.classList.add('active');
             
-            // Set status
             statusMessage.textContent = 'Connecting...';
             participantCount.textContent = '1';
             isCaller = false;
             
-            // Call the other peer
-            currentCall = peer.call(callId, localStream);
-            setupCallEventHandlers(currentCall);
+            // Call the other peer with timeout
+            const callPromise = peer.call(callId, localStream);
+            
+            // Set a timeout for the call attempt
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error('Connection timeout. Peer may not be available.'));
+                }, 15000); // 15 seconds timeout
+            });
+            
+            try {
+                currentCall = await Promise.race([callPromise, timeoutPromise]);
+                setupCallEventHandlers(currentCall);
+                
+                // Monitor connection state
+                monitorConnectionState(currentCall);
+            } catch (callError) {
+                console.error('Call failed:', callError);
+                let errorMessage = 'Error joining call';
+                
+                if (callError.message.includes('timeout')) {
+                    errorMessage = callError.message;
+                } else if (callError.type === 'peer-unavailable') {
+                    errorMessage = 'Peer unavailable. Make sure they created a call.';
+                }
+                
+                showErrorDialog(errorMessage);
+                endCall();
+            }
         } catch (err) {
             console.error('Error joining call:', err);
-            alert('Error joining call. Please check the call ID and try again.');
+            showErrorDialog('Error joining call. Please check the call ID and try again.');
+            endCall();
         }
     }
 
@@ -242,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         
         if (videoDevices.length < 2) {
-            alert('Only one camera available');
+            showErrorDialog('Only one camera available');
             return;
         }
         
@@ -362,15 +424,46 @@ document.addEventListener('DOMContentLoaded', () => {
         qrCodeDiv.innerHTML = qr.createImgTag(4);
     }
 
-    // Check for call ID in URL
+    function monitorConnectionState(call) {
+        const pc = call.peerConnection;
+        
+        pc.oniceconnectionstatechange = () => {
+            console.log('ICE connection state:', pc.iceConnectionState);
+            if (pc.iceConnectionState === 'disconnected' || 
+                pc.iceConnectionState === 'failed') {
+                showErrorDialog('Connection lost. Trying to reconnect...');
+            }
+        };
+    }
+
+    function showErrorDialog(message) {
+        const errorDialog = document.createElement('div');
+        errorDialog.className = 'error-dialog';
+        errorDialog.innerHTML = `
+            <div class="error-content">
+                <h3>Error</h3>
+                <p>${message}</p>
+                <button class="error-ok-btn">OK</button>
+            </div>
+        `;
+        
+        document.body.appendChild(errorDialog);
+        
+        const okBtn = errorDialog.querySelector('.error-ok-btn');
+        okBtn.addEventListener('click', () => {
+            errorDialog.remove();
+        });
+    }
+
     function checkUrlForCallId() {
         const urlParams = new URLSearchParams(window.location.search);
         const callId = urlParams.get('call');
         if (callId) {
             joinCallIdInput.value = callId;
+            // Auto-focus the join button for better UX
+            setTimeout(() => {
+                joinCallBtn.focus();
+            }, 500);
         }
     }
-
-    // Initialize URL check
-    checkUrlForCallId();
 });
