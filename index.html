@@ -1,16 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Video Call</title>
+    <title>Mobile Video Call</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4285f4">
+    <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
-    <video id="localVideo" autoplay muted></video>
-    <video id="remoteVideo" autoplay></video>
-    
-    <input id="callId" placeholder="Call ID">
-    <button id="callBtn">Call</button>
-    <button id="answerBtn">Answer</button>
+    <div id="app-container">
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+        
+        <div class="controls">
+            <input id="callId" placeholder="Enter Call ID">
+            <button id="callBtn">Start Call</button>
+            <button id="answerBtn" style="display:none;">Answer Call</button>
+            <button id="endCall" style="display:none;">End Call</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="orientation-warning">
+            Please rotate your device to portrait mode for best experience
+        </div>
+    </div>
     
     <script src="app.js"></script>
 </body>
