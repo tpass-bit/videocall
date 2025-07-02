@@ -1,33 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Mobile Video Call</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#4285f4">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <meta name="theme-color" content="#6366f1">
+    <title>PeerConnect Video Call</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* CSS will be placed here for GitHub Pages single-file deployment */
+    </style>
 </head>
 <body>
     <div id="app-container">
-        <div class="video-container">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <video id="localVideo" autoplay muted playsinline></video>
+        <!-- Connection Screen -->
+        <div id="connection-screen" class="screen active">
+            <div class="logo">
+                <i class="fas fa-video"></i>
+                <h1>PeerConnect</h1>
+            </div>
+            
+            <div class="call-id-container">
+                <div class="input-group">
+                    <label>Your Call ID:</label>
+                    <div class="copy-group">
+                        <input type="text" id="generatedId" readonly>
+                        <button id="copyIdBtn"><i class="far fa-copy"></i></button>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Or join a call:</label>
+                    <input type="text" id="joinCallId" placeholder="Enter Call ID">
+                </div>
+                
+                <div class="button-group">
+                    <button id="newCallBtn" class="primary">
+                        <i class="fas fa-plus"></i> Create New Call
+                    </button>
+                    <button id="joinCallBtn">
+                        <i class="fas fa-phone-alt"></i> Join Call
+                    </button>
+                </div>
+            </div>
+            
+            <div class="share-buttons">
+                <p>Share this call:</p>
+                <div>
+                    <button id="shareLinkBtn" class="share-btn">
+                        <i class="fas fa-share-alt"></i> Share Link
+                    </button>
+                    <button id="qrCodeBtn" class="share-btn">
+                        <i class="fas fa-qrcode"></i> QR Code
+                    </button>
+                </div>
+            </div>
         </div>
         
-        <div class="controls">
-            <input id="callId" placeholder="Enter Call ID">
-            <button id="callBtn">Start Call</button>
-            <button id="answerBtn" style="display:none;">Answer Call</button>
-            <button id="endCall" style="display:none;">End Call</button>
+        <!-- Call Screen -->
+        <div id="call-screen" class="screen">
+            <div class="video-container">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <video id="localVideo" autoplay muted playsinline></video>
+                
+                <div id="call-status">
+                    <div id="status-message">Connecting...</div>
+                    <div id="call-timer">00:00</div>
+                </div>
+            </div>
+            
+            <div class="call-controls">
+                <button id="toggleMicBtn" class="control-btn active">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="toggleCameraBtn" class="control-btn active">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button id="endCallBtn" class="control-btn end-call">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+                <button id="switchCameraBtn" class="control-btn">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            
+            <div id="participant-info">
+                <i class="fas fa-user"></i>
+                <span id="participant-count">1</span>
+            </div>
         </div>
         
-        <div id="status"></div>
-        
-        <div class="orientation-warning">
-            Please rotate your device to portrait mode for best experience
+        <!-- QR Code Modal -->
+        <div id="qr-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h3>Scan to Join Call</h3>
+                <div id="qr-code"></div>
+                <p>Or share this link:</p>
+                <div class="modal-copy-group">
+                    <input type="text" id="modal-call-link" readonly>
+                    <button id="modal-copy-btn"><i class="far fa-copy"></i></button>
+                </div>
+            </div>
         </div>
     </div>
-    
-    <script src="app.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script>
+        // JavaScript will be placed here for GitHub Pages single-file deployment
+    </script>
 </body>
 </html>
