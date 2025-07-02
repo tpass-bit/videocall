@@ -337,6 +337,49 @@ button:not(.primary) {
     color: white;
 }
 
+/* Error Dialog Styles */
+.error-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.error-content {
+    background: var(--bg-dark);
+    padding: 20px;
+    border-radius: 12px;
+    width: 80%;
+    max-width: 300px;
+    text-align: center;
+    border: 1px solid var(--danger);
+}
+
+.error-content h3 {
+    color: var(--danger);
+    margin-bottom: 10px;
+}
+
+.error-content p {
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.error-ok-btn {
+    background: var(--danger);
+    color: white;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
 /* Responsive Adjustments */
 @media (min-width: 768px) {
     body::before {
